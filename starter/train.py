@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import sys
+import time
 
 import torch
 import torch.nn as nn
@@ -11,10 +12,11 @@ from torchvision import datasets, transforms
 from PIL import ImageFile
 
 
-logs = logging.getLogger(__name__)
-logs.setLevel(logging.DEBUG)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s | [%(levelname)s] %(message)s')
-logs.addHandler(logging.StreamHandler(sys.stdout))
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s | [%(levelname)s] %(message)s')
+logger.addHandler(logging.StreamHandler(sys.stdout))
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -37,9 +39,9 @@ def test(model, test_loader, criterion):
 
     total_loss = running_loss / len(test_loader.dataset)
     total_acc = running_corrects / len(test_loader.dataset)
-    logs.info('Test Loss: {:.4f} Acc: {:.4f}'.format(
-                                                total_loss,
-                                                total_acc))
+    logger.info('Test Loss: {:.4f} Acc: {:.4f}'.format(
+        total_loss,
+        total_acc))
 
 
 def train(model, train_loader, criterion, optimizer):
@@ -59,13 +61,13 @@ def train(model, train_loader, criterion, optimizer):
         trained_images += len(inputs)
         loss.backward()
         optimizer.step()
-        logs.info(f"Trained {trained_images} of {num_images} images")
+        logger.info(f"Trained {trained_images} of {num_images} images")
 
     total_loss = running_loss / len(train_loader.dataset)
     total_acc = running_corrects / len(train_loader.dataset)
-    logs.info('Train Loss: {:.4f} Acc: {:.4f}'.format(
-                                                    total_loss,
-                                                    total_acc))
+    logger.info('Train Loss: {:.4f} Acc: {:.4f}'.format(
+        total_loss,
+        total_acc))
 
 
 def net():
@@ -92,6 +94,7 @@ def create_data_loader(data, transform_functions, batch_size, shuffle=True):
 
 
 def main():
+    logger.info("Parsing arguments")
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--batch-size",
@@ -129,13 +132,17 @@ def main():
                         default=os.environ['SM_CHANNEL_TEST'])
     args = parser.parse_args()
 
+    logger.info("Creating model")
     model = net()
+
+    logger.info("Creating loss function and optimizer")
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
+    logger.info("Creating data loaders")
     train_transforms = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.RandomHorizontalFlip(),
@@ -161,12 +168,25 @@ def main():
         shuffle=False
     )
 
+    logger.info("Checking labels in train_loader")
+    distinct_labels = set()
+    for _, labels in train_loader:
+        distinct_labels.update(set(labels.numpy()))
+    logger.info(f"Distinct labels in train_loader: {distinct_labels}")
+
+    logger.info("Starting training")
+    tic = time.perf_counter()
+
     for epoch in range(1, args.epochs + 1):
-        logs.info(f"Epoch {epoch}")
+        logger.info(f"Epoch {epoch}")
         train(model, train_loader, loss_fn, optimizer)
         test(model, test_loader, loss_fn)
 
+    toc = time.perf_counter()
+    logger.info(f"Training took {toc - tic:0.4f} seconds")
+
     path = os.path.join(args.model_dir, "model.pth")
+    logger.info(f"Saving model to {path}")
     torch.save(model.cpu().state_dict(), path)
 
 
