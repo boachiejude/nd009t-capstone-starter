@@ -13,6 +13,7 @@ from PIL import ImageFile
 
 logs = logging.getLogger(__name__)
 logs.setLevel(logging.DEBUG)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s | [%(levelname)s] %(message)s')
 logs.addHandler(logging.StreamHandler(sys.stdout))
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
