@@ -37,15 +37,13 @@ As can be seen in the conclusions of both projects, the obtained accuracy is app
 
 ### Data preprocessing
 
-The first step to train a model is to download an process the data which will be used as the input. As stated before, we have decided to focus on pictures with 0 to 5 objects. Each picture will be assigned a class according to the following rule:
+The first step to train a model is to download an process the data which will be used as the input. As stated before, we have decided to focus on pictures with 0 to 4 objects. Each picture will be assigned a class according to the following rule:
 
 * Class 1 for pictures without objects
 * Class 2 for pictures with 1 object
 * Class 3 for pictures with 2 objects
 * Class 4 for pictures with 3 objects
 * Class 5 for pictures with 4 objects
-* Class 6 for pictures with 5 objects
-
 
 In order to download these pictures, a Python script has been created. The script can be found at the project Jupyter notebook (file `sagemaker.ipynb`). Specifically, the script will iterate over the JSON files from the Amazon dataset and will download the picture if it contains 0 to 5 objects and the number of objects downloaded for the specific class is below 1,000. 
 
