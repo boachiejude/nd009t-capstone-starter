@@ -14,8 +14,9 @@ from PIL import ImageFile
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s | [%(levelname)s] %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s | [%(levelname)s] %(message)s"
+)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -39,9 +40,7 @@ def test(model, test_loader, criterion):
 
     total_loss = running_loss / len(test_loader.dataset)
     total_acc = running_corrects / len(test_loader.dataset)
-    logger.info('Test Loss: {:.4f} Acc: {:.4f}'.format(
-        total_loss,
-        total_acc))
+    logger.info("Test Loss: {:.4f} Acc: {:.4f}".format(total_loss, total_acc))
 
 
 def train(model, train_loader, criterion, optimizer):
@@ -51,7 +50,7 @@ def train(model, train_loader, criterion, optimizer):
     running_loss = 0
     running_corrects = 0
 
-    for (inputs, labels) in train_loader:
+    for inputs, labels in train_loader:
         optimizer.zero_grad()
         outputs = model(inputs)
         loss = criterion(outputs, labels)
@@ -61,13 +60,13 @@ def train(model, train_loader, criterion, optimizer):
         trained_images += len(inputs)
         loss.backward()
         optimizer.step()
-        logger.info(f"Trained {trained_images} of {num_images} images")
+
+        if trained_images % 1000 == 0:
+            logger.info(f"Trained on {trained_images} of {num_images} images")
 
     total_loss = running_loss / len(train_loader.dataset)
     total_acc = running_corrects / len(train_loader.dataset)
-    logger.info('Train Loss: {:.4f} Acc: {:.4f}'.format(
-        total_loss,
-        total_acc))
+    logger.info("Train Loss: {:.4f} Acc: {:.4f}".format(total_loss, total_acc))
 
 
 def net():
@@ -88,9 +87,7 @@ def net():
 
 def create_data_loader(data, transform_functions, batch_size, shuffle=True):
     data = datasets.ImageFolder(data, transform=transform_functions)
-    return torch.utils.data.DataLoader(data,
-                                       batch_size=batch_size,
-                                       shuffle=shuffle)
+    return torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=shuffle)
 
 
 def main():
@@ -122,14 +119,11 @@ def main():
         type=float,
         default=0.01,
         metavar="LR",
-        help="learning rate (default: 0.01)"
+        help="learning rate (default: 0.01)",
     )
-    parser.add_argument('--model-dir', type=str,
-                        default=os.environ['SM_MODEL_DIR'])
-    parser.add_argument('--train', type=str,
-                        default=os.environ['SM_CHANNEL_TRAIN'])
-    parser.add_argument('--test', type=str,
-                        default=os.environ['SM_CHANNEL_TEST'])
+    parser.add_argument("--model-dir", type=str, default=os.environ["SM_MODEL_DIR"])
+    parser.add_argument("--train", type=str, default=os.environ["SM_CHANNEL_TRAIN"])
+    parser.add_argument("--test", type=str, default=os.environ["SM_CHANNEL_TEST"])
     args = parser.parse_args()
 
     logger.info("Creating model")
@@ -139,33 +133,31 @@ def main():
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
+    normalize = transforms.Normalize(
+        mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+    )
 
     logger.info("Creating data loaders")
-    train_transforms = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        normalize,
-    ])
-
-    test_transforms = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        normalize,
-    ])
-
-    train_loader = create_data_loader(
-        args.train,
-        train_transforms,
-        args.batch_size
+    train_transforms = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            normalize,
+        ]
     )
+
+    test_transforms = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            normalize,
+        ]
+    )
+
+    train_loader = create_data_loader(args.train, train_transforms, args.batch_size)
     test_loader = create_data_loader(
-        args.test,
-        test_transforms,
-        args.test_batch_size,
-        shuffle=False
+        args.test, test_transforms, args.test_batch_size, shuffle=False
     )
 
     logger.info("Checking labels in train_loader")
